@@ -3,13 +3,17 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../middleware/auth");
+const validation = require("../middleware/validation");
 
 const resultController = require("../controllers/resultController");
+const { computeResultValidation } = require("../validators/resultValidator");
 
 router.post(
   "/compute",
   auth,
   role("ADMIN", "LECTURER"),
+  computeResultValidation,
+  validation,
   resultController.computeResult,
 );
 router.get("/student/:studentId", auth, resultController.getStudentResults);
