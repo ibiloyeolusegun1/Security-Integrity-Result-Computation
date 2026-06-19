@@ -174,3 +174,205 @@ exports.verifyResult = async (req, res) => {
     });
   }
 };
+
+exports.calculateGPA = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    const { session, semester } = req.query;
+
+    const result = await pool.query(
+      `
+      SELECT
+        SUM(r.quality_point) AS total_quality_points,
+        SUM(c.unit) AS total_units
+
+      FROM results r
+
+      JOIN courses c
+      ON r.course_id = c.id
+
+      WHERE
+        r.student_id = $1
+        AND r.session = $2
+        AND r.semester = $3
+      `,
+      [studentId, session, semester],
+    );
+
+    const qualityPoints = Number(result.rows[0].total_quality_points) || 0;
+
+    const totalUnits = Number(result.rows[0].total_units) || 0;
+
+    const gpa = totalUnits === 0 ? 0 : (qualityPoints / totalUnits).toFixed(2);
+
+    res.json({
+      success: true,
+      student_id: studentId,
+      session,
+      semester,
+      total_units: totalUnits,
+      total_quality_points: qualityPoints,
+      gpa,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+exports.calculateCGPA = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    const result = await pool.query(
+      `
+      SELECT
+        SUM(quality_point)
+        AS total_quality_points,
+
+        COUNT(*)
+      FROM results
+
+      WHERE student_id = $1
+      `,
+      [studentId],
+    );
+
+    const unitsResult = await pool.query(
+      `
+        SELECT
+          SUM(c.unit)
+          AS total_units
+
+        FROM results r
+
+        JOIN courses c
+        ON r.course_id = c.id
+
+        WHERE r.student_id = $1
+        `,
+      [studentId],
+    );
+
+    const qualityPoints = Number(result.rows[0].total_quality_points) || 0;
+
+    const totalUnits = Number(unitsResult.rows[0].total_units) || 0;
+
+    const cgpa = totalUnits === 0 ? 0 : (qualityPoints / totalUnits).toFixed(2);
+
+    res.json({
+      success: true,
+      student_id: studentId,
+      total_units: totalUnits,
+      total_quality_points: qualityPoints,
+      cgpa,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+exports.getTranscript = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    const transcript = await pool.query(
+      `
+        SELECT
+
+        c.course_code,
+        c.course_title,
+        c.unit,
+
+        r.ca_score,
+        r.test_score,
+        r.exam_score,
+
+        r.total_score,
+        r.grade,
+        r.grade_point,
+        r.quality_point,
+
+        r.session,
+        r.semester
+
+        FROM results r
+
+        JOIN courses c
+        ON r.course_id = c.id
+
+        WHERE r.student_id = $1
+
+        ORDER BY
+        r.session,
+        r.semester
+        `,
+      [studentId],
+    );
+
+    res.json({
+      success: true,
+      count: transcript.rows.length,
+      data: transcript.rows,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+exports.getDashboardStats = async (req, res) => {
+  try {
+    const students = await pool.query("SELECT COUNT(*) FROM students");
+
+    const courses = await pool.query("SELECT COUNT(*) FROM courses");
+
+    const results = await pool.query("SELECT COUNT(*) FROM results");
+
+    const averageCGPA = await pool.query(`
+        SELECT
+        ROUND(
+          AVG(grade_point),
+          2
+        )
+        AS avg_cgpa
+
+        FROM results
+      `);
+
+    res.json({
+      success: true,
+
+      stats: {
+        students: students.rows[0].count,
+
+        courses: courses.rows[0].count,
+
+        results: results.rows[0].count,
+
+        average_cgpa: averageCGPA.rows[0].avg_cgpa,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
