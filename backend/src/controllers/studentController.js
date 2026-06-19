@@ -1,8 +1,28 @@
 const pool = require("../config/db");
+const createAuditLog = require("../services/auditService");
 
 exports.createStudent = async (req, res) => {
   try {
     const { matric_no, fullname, department, level } = req.body;
+
+    if (!matric_no || !fullname || !department || !level) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const existingStudent = await pool.query(
+      "SELECT * FROM students WHERE matric_no = $1",
+      [matric_no],
+    );
+
+    if (existingStudent.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Matric number already exists",
+      });
+    }
 
     const student = await pool.query(
       `
@@ -16,6 +36,12 @@ exports.createStudent = async (req, res) => {
       RETURNING *
       `,
       [matric_no, fullname, department, level],
+    );
+
+    await createAuditLog(
+      req.user.id,
+      "STUDENT_CREATED",
+      `Created student ${fullname}`,
     );
 
     res.status(201).json({
@@ -107,6 +133,13 @@ exports.updateStudent = async (req, res) => {
       `,
       [matric_no, fullname, department, level, req.params.id],
     );
+
+    if (student.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
 
     res.json({
       success: true,
