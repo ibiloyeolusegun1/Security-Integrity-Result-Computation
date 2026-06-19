@@ -18,6 +18,12 @@ exports.createStudent = async (req, res) => {
       [matric_no, fullname, department, level],
     );
 
+    await createAuditLog(
+      req.user.id,
+      "STUDENT_CREATED",
+      `Created student ${fullname}`,
+    );
+
     res.status(201).json({
       success: true,
       message: "Student created successfully",

@@ -7,6 +7,7 @@ const authRoutes = require("./routes/authRoutes");
 const studentRoutes = require("./routes/studentRoutes");
 const courseRoutes = require("./routes/courseRoutes");
 const resultRoutes = require("./routes/resultRoutes");
+const auditRoutes = require("./routes/auditRoutes");
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/results", resultRoutes);
+app.use("/api/audit", auditRoutes);
 
 app.get("/", (req, res) => {
   res.json({

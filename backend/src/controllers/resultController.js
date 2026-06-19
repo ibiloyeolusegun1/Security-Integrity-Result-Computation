@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const calculateGrade = require("../services/gradeService");
 const generateHash = require("../services/hashService");
+const createAuditLog = require("../services/auditService");
 
 exports.computeResult = async (req, res) => {
   try {
@@ -23,6 +24,12 @@ exports.computeResult = async (req, res) => {
     const course = await pool.query("SELECT * FROM courses WHERE id=$1", [
       course_id,
     ]);
+
+    await createAuditLog(
+      req.user.id,
+      "RESULT_COMPUTED",
+      `Computed result for Student ${student_id}`,
+    );
 
     if (course.rows.length === 0) {
       return res.status(404).json({
