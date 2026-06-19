@@ -383,3 +383,90 @@ exports.getDashboardStats = async (req, res) => {
     });
   }
 };
+
+exports.updateResult = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { ca_score, test_score, exam_score } = req.body;
+
+    const existing = await pool.query(
+      `
+        SELECT r.*, c.unit
+        FROM results r
+        JOIN courses c
+        ON r.course_id=c.id
+        WHERE r.id=$1
+        `,
+      [id],
+    );
+
+    if (existing.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Result not found",
+      });
+    }
+
+    const result = existing.rows[0];
+
+    const totalScore =
+      Number(ca_score) + Number(test_score) + Number(exam_score);
+
+    const { grade, point } = calculateGrade(totalScore);
+
+    const qualityPoint = point * result.unit;
+
+    const hash = generateHash(
+      `${result.student_id}-${result.course_id}-${totalScore}-${grade}-${point}`,
+    );
+
+    const updated = await pool.query(
+      `
+        UPDATE results
+        SET
+        ca_score=$1,
+        test_score=$2,
+        exam_score=$3,
+        total_score=$4,
+        grade=$5,
+        grade_point=$6,
+        quality_point=$7,
+        hash_value=$8
+
+        WHERE id=$9
+
+        RETURNING *
+        `,
+      [
+        ca_score,
+        test_score,
+        exam_score,
+        totalScore,
+        grade,
+        point,
+        qualityPoint,
+        hash,
+        id,
+      ],
+    );
+
+    await createAuditLog(
+      req.user.id,
+      "RESULT_UPDATED",
+      `Updated Result ID ${id}`,
+    );
+
+    res.json({
+      success: true,
+      data: updated.rows[0],
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
