@@ -2,6 +2,7 @@ const pool = require("../config/db");
 const calculateGrade = require("../services/gradeService");
 const generateHash = require("../services/hashService");
 const createAuditLog = require("../services/auditService");
+const generateTranscriptPDF = require("../services/pdfService");
 
 exports.computeResult = async (req, res) => {
   try {
@@ -468,6 +469,86 @@ exports.updateResult = async (req, res) => {
       success: true,
       data: updated.rows[0],
     });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+exports.downloadTranscript = async (req, res) => {
+  try {
+    const studentId = req.params.studentId;
+
+    const student = await pool.query(
+      `
+        SELECT *
+        FROM students
+        WHERE id = $1
+        `,
+      [studentId],
+    );
+
+    if (student.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
+
+    const transcript = await pool.query(
+      `
+        SELECT
+          c.course_code,
+          c.course_title,
+          c.unit,
+          r.grade
+
+        FROM results r
+
+        JOIN courses c
+        ON r.course_id=c.id
+
+        WHERE r.student_id=$1
+        `,
+      [studentId],
+    );
+
+    const cgpaResult = await pool.query(
+      `
+        SELECT
+          SUM(r.quality_point)
+          /
+          SUM(c.unit)
+          AS cgpa
+
+        FROM results r
+
+        JOIN courses c
+        ON r.course_id=c.id
+
+        WHERE r.student_id=$1
+        `,
+      [studentId],
+    );
+
+    const pdf = await generateTranscriptPDF(
+      student.rows[0],
+      transcript.rows,
+      cgpaResult.rows[0].cgpa,
+    );
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=transcript-${studentId}.pdf`,
+    );
+
+    res.send(pdf);
   } catch (error) {
     console.error(error);
 

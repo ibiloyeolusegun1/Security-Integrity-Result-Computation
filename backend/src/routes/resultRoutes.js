@@ -21,6 +21,11 @@ router.get("/verify/:id", auth, resultController.verifyResult);
 router.get("/gpa/:studentId", auth, resultController.calculateGPA);
 router.get("/cgpa/:studentId", auth, resultController.calculateCGPA);
 router.get("/transcript/:studentId", auth, resultController.getTranscript);
+router.get(
+  "/transcript/pdf/:studentId",
+  auth,
+  resultController.downloadTranscript,
+);
 router.get("/dashboard/stats", auth, resultController.getDashboardStats);
 router.put(
   "/:id",
