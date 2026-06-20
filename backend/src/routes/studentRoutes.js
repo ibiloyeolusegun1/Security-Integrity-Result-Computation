@@ -19,6 +19,12 @@ router.post(
 router.get("/", auth, studentController.getStudents);
 router.get("/:id", auth, studentController.getStudent);
 router.put("/:id", auth, studentController.updateStudent);
+router.put(
+  "/promote/:id",
+  auth,
+  role("ADMIN"),
+  studentController.promoteStudent,
+);
 router.delete("/:id", auth, role("ADMIN"), studentController.deleteStudent);
 
 module.exports = router;
