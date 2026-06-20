@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { StudentFormData } from "@/types/student";
 
 interface Props {
-  onSubmit: (data: any) => void;
-  initialData?: any;
+  onSubmit: (data: StudentFormData) => void;
+  initialData?: StudentFormData;
 }
 
 export default function StudentForm({ onSubmit, initialData }: Props) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<StudentFormData>({
     matric_no: initialData?.matric_no || "",
     fullname: initialData?.fullname || "",
     department: initialData?.department || "",
@@ -18,10 +19,10 @@ export default function StudentForm({ onSubmit, initialData }: Props) {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
+    }));
   };
 
   return (
@@ -62,13 +63,13 @@ export default function StudentForm({ onSubmit, initialData }: Props) {
         value={formData.level}
         onChange={handleChange}
       >
-        <option>ND1</option>
-        <option>ND2</option>
-        <option>HND1</option>
-        <option>HND2</option>
+        <option value="ND1">ND1</option>
+        <option value="ND2">ND2</option>
+        <option value="HND1">HND1</option>
+        <option value="HND2">HND2</option>
       </select>
 
-      <button className="w-full bg-black text-white p-3 rounded">
+      <button type="submit" className="w-full bg-black text-white p-3 rounded">
         Save Student
       </button>
     </form>

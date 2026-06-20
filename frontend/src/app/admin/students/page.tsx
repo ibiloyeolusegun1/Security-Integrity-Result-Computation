@@ -1,20 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import DashboardLayout from "@/components/layout/DashboardLayout";
-
 import StudentForm from "@/components/forms/StudentForm";
-
 import {
   createStudent,
   deleteStudent,
   getStudents,
 } from "@/services/studentService";
-
-import { Student } from "@/types/student";
-
+import { Student, StudentFormData } from "@/types/student";
 import { Plus } from "lucide-react";
+
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -35,7 +31,7 @@ export default function StudentsPage() {
     fetchStudents();
   }, []);
 
-  const handleCreate = async (data: any) => {
+  const handleCreate = async (data: StudentFormData) => {
     await createStudent(data);
 
     setShowForm(false);

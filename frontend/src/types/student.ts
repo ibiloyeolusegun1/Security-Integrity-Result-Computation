@@ -6,3 +6,10 @@ export interface Student {
   level: string;
   created_at?: string;
 }
+
+export interface StudentFormData {
+  matric_no: string;
+  fullname: string;
+  department: string;
+  level: string;
+}
