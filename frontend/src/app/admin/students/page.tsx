@@ -18,6 +18,8 @@ export default function StudentsPage() {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const studentsPerPage = 10;
 
   const nd1Count = students.filter((s) => s.level === "ND1").length;
   const nd2Count = students.filter((s) => s.level === "ND2").length;
@@ -29,6 +31,8 @@ export default function StudentsPage() {
       const response = await getStudents();
 
       setStudents(response.data);
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -43,6 +47,17 @@ export default function StudentsPage() {
       student.fullname.toLowerCase().includes(search.toLowerCase()) ||
       student.matric_no.toLowerCase().includes(search.toLowerCase()),
   );
+
+  const indexOfLastStudent = currentPage * studentsPerPage;
+
+  const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
+
+  const currentStudents = filteredStudents.slice(
+    indexOfFirstStudent,
+    indexOfLastStudent,
+  );
+
+  const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
 
   const handleCreate = async (data: StudentFormData) => {
     await createStudent(data);
@@ -164,7 +179,7 @@ export default function StudentsPage() {
             </thead>
 
             <tbody>
-              {filteredStudents.map((student) => (
+              {currentStudents.map((student) => (
                 <tr key={student.id} className="border-b">
                   <td className="p-3">{student.matric_no}</td>
                   <td className="p-3">{student.fullname}</td>
@@ -193,6 +208,28 @@ export default function StudentsPage() {
           </table>
         </div>
       )}
+
+      <div className="flex justify-center gap-2 mt-6">
+        <button
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage(currentPage - 1)}
+          className="border px-4 py-2 rounded"
+        >
+          Previous
+        </button>
+
+        <span className="px-4 py-2">
+          Page {currentPage} of {totalPages}
+        </span>
+
+        <button
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage(currentPage + 1)}
+          className="border px-4 py-2 rounded"
+        >
+          Next
+        </button>
+      </div>
     </DashboardLayout>
   );
 }
