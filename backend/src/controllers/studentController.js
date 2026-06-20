@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const createAuditLog = require("../services/auditService");
+const getNextLevel = require("../services/promotionService");
 
 exports.createStudent = async (req, res) => {
   try {
@@ -169,6 +170,59 @@ exports.deleteStudent = async (req, res) => {
     res.json({
       success: true,
       message: "Student deleted",
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+exports.promoteStudent = async (req, res) => {
+  try {
+    const student = await pool.query(
+      `
+        SELECT *
+        FROM students
+        WHERE id = $1
+        `,
+      [req.params.id],
+    );
+
+    if (student.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
+
+    const currentLevel = student.rows[0].level;
+
+    const nextLevel = getNextLevel(currentLevel);
+
+    const updated = await pool.query(
+      `
+        UPDATE students
+        SET level = $1
+        WHERE id = $2
+        RETURNING *
+        `,
+      [nextLevel, req.params.id],
+    );
+
+    await createAuditLog(
+      req.user.id,
+      "STUDENT_PROMOTED",
+      `Promoted student ${student.rows[0].fullname} from ${currentLevel} to ${nextLevel}`,
+    );
+
+    res.json({
+      success: true,
+      message: "Student promoted successfully",
+      data: updated.rows[0],
     });
   } catch (error) {
     console.error(error);
